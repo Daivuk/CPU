@@ -8,15 +8,11 @@
 #include <algorithm>
 using namespace std;
 
-int compile(const string &filename);
-int parseArguments(int argc, char **argv);
-int createElf(const string &filename, const vector<uint8_t> &data);
-
 struct sSection
 {
     string name;
     uint32_t position = numeric_limits<uint32_t>::max();
-    vector<uint8_t> code;
+    vector<vector<string>> tokenz;
 };
 unordered_map<string, sSection *> sectionMap;
 vector<sSection *> sections;
@@ -25,6 +21,13 @@ string fileToCompile;
 string outputFile;
 string outputPath;
 vector<uint8_t> outputData;
+unordered_map<string, uint32_t> labels;
+uint32_t pc = 0;
+
+int preprocess(const string &filename);
+int compile(const vector<sSection *> &sections);
+int parseArguments(int argc, char **argv);
+int createElf(const string &filename, const vector<uint8_t> &data);
 
 int main(int argc, char **argv)
 {
@@ -35,7 +38,14 @@ int main(int argc, char **argv)
         return ret;
     }
 
-    ret = compile(fileToCompile);
+    ret = preprocess(fileToCompile);
+    if (ret)
+    {
+        system("pause");
+        return ret;
+    }
+
+    ret = compile(sections);
     if (ret)
     {
         system("pause");
@@ -100,7 +110,15 @@ enum ERROR_CODES : int
     ERROR_INVALID_NUMBER,
     ERROR_SECTION_NOT_DEFINED,
     ERROR_NOT_IN_SECTION,
-    ERROR_INVALID_SYNTAX
+    ERROR_INVALID_SYNTAX,
+    ERROR_INVALID_CONSTANT,
+    ERROR_DUPLICATE_LABEL,
+    ERROR_LABEL_NOT_FOUND,
+    ERROR_LABEL_OUT_OF_RANGE,
+    ERROR_SPACE,
+    ERROR_INCBIN,
+    ERROR_OPENING_FILE,
+    ERROR_EXPECTED_REGISTER
 };
 
 int extractString(string &str)
@@ -165,42 +183,452 @@ int extractNumber(uint32_t &number, const string &str)
     return ERROR_NONE;
 }
 
-int readReg(const string &str)
+uint32_t readReg(const string &str)
 {
+    if (str == "r0") return 0x0;
+    if (str == "r1") return 0x1;
+    if (str == "r2") return 0x2;
+    if (str == "r3") return 0x3;
+    if (str == "r4") return 0x4;
+    if (str == "r5") return 0x5;
+    if (str == "r6") return 0x6;
+    if (str == "r7") return 0x7;
+    if (str == "r8") return 0x8;
+    if (str == "r9") return 0x9;
+    if (str == "r10") return 0xa;
+    if (str == "r11") return 0xb;
+    if (str == "r12") return 0xc;
+    if (str == "sp") return 0xd;
+    if (str == "lr") return 0xe;
+    if (str == "pc") return 0xf;
+    return 0x10;
 }
 
 uint32_t currentInstruction = 0;
 
-uint32_t constructOpsCode(uint32_t code)
+enum eInst : uint32_t
 {
-    return code << 24;
-}
+    BRK = 0x1F,
+    CMP = 0x03,
 
-uint32_t constructSglCode(uint32_t code)
-{
-    return (code << 24) | 0x8000000;
-}
+    ADD = 0x00, ADDS = 0x10,
+    SUB = 0x01, SUBS = 0x11,
+    MUL = 0x02, MULS = 0x12,
+    DIV = 0x03, DIVS = 0x13,
+    AND = 0x04, ANDS = 0x14,
+    ORR = 0x05, ORRS = 0x15,
+    XOR = 0x06, XORS = 0x16,
+    LSL = 0x07, LSLS = 0x17,
+    LSR = 0x08, LSRS = 0x18,
 
-unordered_map<string, function<int(const vector<string> &)>> instructions =
+    MOV = 0x09, MOVS = 0x19,
+    NOT = 0x0A, NOTS = 0x1A,
+
+    LDR = 0x0C, LDB = 0x0D, LDH = 0x0E,
+    STR = 0x1C, STB = 0x1D, STH = 0x1E,
+
+    JMP = 0x0B, FNC = 0x1B,
+};
+
+int constructImmShifter(uint32_t &out, uint32_t number, bool bInv = false)
 {
-    {"BRK", [](const vector<string> &tokens) -> int
+    if (!(number & 0xFFFFFF00))
     {
-        currentInstruction |= constructOpsCode(0x1F);
+        out = number;
         return ERROR_NONE;
     }
-    },
-    {"MOV", [](const vector<string> &tokens) -> int
+    else if (!(number & 0xFFFFF00F))
     {
-        if (tokens.size() < 3)
+        out = 1 << 8;
+        out |= number >> 4;
+        return ERROR_NONE;
+    }
+    else if (!(number & 0xFFFF00FF))
+    {
+        out = 2 << 8;
+        out |= number >> 8;
+        return ERROR_NONE;
+    }
+    else if (!(number & 0xFFF00FFF))
+    {
+        out = 3 << 8;
+        out |= number >> 12;
+        return ERROR_NONE;
+    }
+    else if (!(number & 0xFF00FFFF))
+    {
+        out = 4 << 8;
+        out |= number >> 16;
+        return ERROR_NONE;
+    }
+    else if (!(number & 0xF00FFFFF))
+    {
+        out = 5 << 8;
+        out |= number >> 20;
+        return ERROR_NONE;
+    }
+    else if (!(number & 0x00FFFFFF))
+    {
+        out = 6 << 8;
+        out |= number >> 24;
+        return ERROR_NONE;
+    }
+    if (!bInv)
+    {
+        auto ret = constructImmShifter(out, ~number, true);
+        if (!ret)
+        {
+            out |= 1 << 11;
+        }
+        return ret;
+    }
+    return ERROR_INVALID_CONSTANT;
+}
+
+uint32_t constructI(uint32_t number)
+{
+    return number;
+}
+
+uint32_t constructE(uint32_t number)
+{
+    return number << 1;
+}
+
+int constructOpsInst(uint32_t code, const vector<string> &tokens)
+{
+    if (tokens.size() < 3)
+    {
+        return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
+    }
+    if (tokens.size() == 3)
+    {
+        auto Rd = readReg(tokens[1]);
+        if (Rd == 0x10) throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[1]);
+        auto Rl = Rd;
+        auto Rr = readReg(tokens[2]);
+        currentInstruction |= Rd << 20;
+        currentInstruction |= Rl << 16;
+        if (Rr == 0x10)
+        {
+            // Immediate
+            auto ret = extractNumber(Rr, tokens[2]);
+            if (ret) return throwError(ret, string("Failed to parse number ") + tokens[2]);
+            uint32_t imm_shifter = 0;
+            ret = constructImmShifter(imm_shifter, Rr);
+            if (ret) return throwError(ERROR_INVALID_CONSTANT, string("Invalid constant. Can't fix up ") + tokens[2]);
+            currentInstruction |= imm_shifter << 4;
+            currentInstruction |= constructI(1); // Immediate bit
+        }
+        else
+        {
+            // By register
+            currentInstruction |= Rr << 12;
+        }
+    }
+    else if (tokens.size() > 3)
+    {
+        auto Rd = readReg(tokens[1]);
+        if (Rd == 0x10) throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[1]);
+        auto Rl = readReg(tokens[2]);
+        if (Rl == 0x10) throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[2]);
+        auto Rr = readReg(tokens[3]);
+        currentInstruction |= Rd << 20;
+        currentInstruction |= Rl << 16;
+        if (Rr == 0x10)
+        {
+            // Immediate
+            auto ret = extractNumber(Rr, tokens[3]);
+            if (ret) return throwError(ret, string("Failed to parse number ") + tokens[3]);
+            uint32_t imm_shifter = 0;
+            ret = constructImmShifter(imm_shifter, Rr);
+            if (ret) return throwError(ERROR_INVALID_CONSTANT, string("Invalid constant. Can't fix up ") + tokens[3]);
+            currentInstruction |= imm_shifter << 4;
+            currentInstruction |= constructI(1); // Immediate bit
+        }
+        else
+        {
+            // By register
+            currentInstruction |= Rr << 12;
+        }
+    }
+    currentInstruction |= constructE(0);
+    currentInstruction |= code << 24;
+    return ERROR_NONE;
+}
+
+int constructSglInst(uint32_t code, const vector<string> &tokens)
+{
+    if (tokens.size() < 3)
+    {
+        return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
+    }
+    auto Rd = readReg(tokens[1]);
+    if (Rd == 0x10) throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[1]);
+    auto Rr = readReg(tokens[2]);
+    currentInstruction |= Rd << 20;
+    if (Rr == 0x10)
+    {
+        // Immediate
+        auto ret = extractNumber(Rr, tokens[2]);
+        if (ret) return throwError(ret, string("Failed to parse number ") + tokens[2]);
+        uint32_t imm_shifter = 0;
+        ret = constructImmShifter(imm_shifter, Rr);
+        if (ret) return throwError(ERROR_INVALID_CONSTANT, string("Invalid constant. Can't fix up ") + tokens[2]);
+        currentInstruction |= imm_shifter << 4;
+        currentInstruction |= constructI(1); // Immediate bit
+    }
+    else
+    {
+        // By register
+        currentInstruction |= Rr << 12;
+    }
+    currentInstruction |= constructE(0);
+    currentInstruction |= code << 24;
+    return ERROR_NONE;
+}
+
+int constructMemInst(uint32_t code, const vector<string> &tokens)
+{
+    if (tokens.size() < 3)
+    {
+        return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
+    }
+
+    auto Rd = readReg(tokens[1]);
+    if (Rd == 0x10) throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[1]);
+    currentInstruction |= Rd << 20;
+
+    if (tokens[2] == "[")
+    {
+        // Register
+        if (tokens.size() < 5)
         {
             return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
         }
-        auto Rd = readReg(tokens[1]);
-        auto Rr = readReg(tokens[2]);
-        currentInstruction |= constructSglCode(0x00);
-        return ERROR_NONE;
+        auto Rm = readReg(tokens[3]);
+        if (Rm == 0x10) throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[3]);
+        currentInstruction |= Rm << 16;
+
+        if (tokens[4] == "]")
+        {
+            if (tokens.size() > 5)
+            {
+                auto Ri = readReg(tokens[5]);
+                if (Ri == 0x10)
+                {
+                    // Immediate increment
+                    uint32_t increment;
+                    auto ret = extractNumber(increment, tokens[5]);
+                    if (ret) throwError(ret, string("Failed to parse number ") + tokens[5]);
+                    increment &= 0x1F;
+                    currentInstruction |= increment << 3;
+                    currentInstruction |= 1 << 1;
+                }
+                else
+                {
+                    // Register increment
+                    currentInstruction |= Ri << 4;
+                }
+            }
+        }
+        else
+        {
+            if (tokens.size() < 6)
+            {
+                return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
+            }
+
+            auto Ro = readReg(tokens[4]);
+            if (Ro == 0x10)
+            {
+                // Immediate offset
+                uint32_t offset;
+                auto ret = extractNumber(offset, tokens[4]);
+                if (ret) throwError(ret, string("Failed to parse number ") + tokens[4]);
+                offset &= 0xFF;
+                currentInstruction |= offset << 8;
+                currentInstruction |= 1 << 2;
+            }
+            else
+            {
+                // Register increment
+                currentInstruction |= Ro << 12;
+            }
+            if (tokens[5] == "]")
+            {
+                if (tokens.size() > 6)
+                {
+                    auto Ri = readReg(tokens[6]);
+                    if (Ri == 0x10)
+                    {
+                        // Immediate increment
+                        uint32_t increment;
+                        auto ret = extractNumber(increment, tokens[6]);
+                        if (ret) throwError(ret, string("Failed to parse number ") + tokens[6]);
+                        increment &= 0x1F;
+                        currentInstruction |= increment << 3;
+                        currentInstruction |= 1 << 1;
+                    }
+                    else
+                    {
+                        // Register increment
+                        currentInstruction |= Ri << 4;
+                    }
+                }
+            }
+        }
     }
-    },
+    else
+    {
+        // Immediate
+        auto label = tokens[2] + ':';
+        if (labels.find(label) == labels.end())
+        {
+            return throwError(ERROR_LABEL_NOT_FOUND, "Label not found " + label);
+        }
+        auto labelAddr = labels[label];
+        auto offset = static_cast<int32_t>(labelAddr)-static_cast<int32_t>(pc);
+        const int32_t limit = 0x3FFFF;
+        if (offset < -limit || offset > limit)
+        {
+            return throwError(ERROR_LABEL_OUT_OF_RANGE, "Label out of range " + tokens[1]);
+        }
+        if (offset < 0)
+        {
+            offset = -offset;
+            offset >>= 2;
+            offset &= 0x3FFFF;
+            offset |= 0x40000;
+        }
+        else
+        {
+            offset >>= 2;
+            offset &= 0x3FFFF;
+            currentInstruction |= offset << 1;
+        }
+        currentInstruction |= constructI(1); // Immediate bit
+    }
+
+    currentInstruction |= code << 24;
+
+    return ERROR_NONE;
+}
+
+int constructJmpInst(uint32_t code, const vector<string> &tokens)
+{
+    if (tokens.size() < 2)
+    {
+        return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
+    }
+    auto Rs = readReg(tokens[1]);
+    if (Rs == 0x10)
+    {
+        // Find the label
+        auto label = tokens[1] + ':';
+        if (labels.find(label) == labels.end())
+        {
+            return throwError(ERROR_LABEL_NOT_FOUND, "Label not found " + tokens[1]);
+        }
+        auto labelAddr = labels[label];
+        auto offset = static_cast<int32_t>(labelAddr) - static_cast<int32_t>(pc);
+        const int32_t limit = 0x3FFFFF;
+        if (offset < -limit || offset > limit)
+        {
+            return throwError(ERROR_LABEL_OUT_OF_RANGE, "Label out of range " + tokens[1]);
+        }
+        if (offset < 0)
+        {
+            offset = -offset;
+            offset >>= 2;
+            offset &= 0x3FFFFF;
+            offset |= 0x400000;
+        }
+        else
+        {
+            offset >>= 2;
+            offset &= 0x3FFFFF;
+            currentInstruction |= offset << 1;
+        }
+        currentInstruction |= constructI(1); // Immediate bit
+    }
+    else
+    {
+        // By register
+        currentInstruction |= Rs << 20;
+    }
+    currentInstruction |= constructE(0);
+    currentInstruction |= code << 24;
+    return ERROR_NONE;
+}
+
+int constructBkrInst(uint32_t code, const vector<string> &tokens)
+{
+    currentInstruction |= code << 24;
+    return ERROR_NONE;
+}
+
+enum eCond : uint32_t
+{
+    COND_ALWAYS = 0x0,
+    COND_NEVER = 0x1,
+    COND_EQ = 0x2,
+    COND_NE = 0x3,
+    COND_GR = 0x4,
+    COND_GE = 0x5,
+    COND_LO = 0x6,
+    COND_LE = 0x7
+};
+
+#define CREATE_COND_INST_FULL(__inst__, __instEnum__, __fn__) \
+    {__inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_ALWAYS << 4), tokens); }}, \
+    {"!" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_NEVER << 4), tokens); }}, \
+    {"==" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_EQ << 4), tokens); }}, \
+    {"!=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_NE << 4), tokens); }}, \
+    {">" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_GR << 4), tokens); }}, \
+    {">=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_GE << 4), tokens); }}, \
+    {"<" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_LO << 4), tokens); }}, \
+    {"<=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_LE << 4), tokens); }}
+
+#define CREATE_COND_INST(__inst__, __fn__) \
+    CREATE_COND_INST_FULL(#__inst__, eInst::__inst__, __fn__)
+
+#define CREATE_COND_INST_S(__inst__, __fn__) \
+    CREATE_COND_INST_FULL(#__inst__, eInst::__inst__, __fn__), \
+    CREATE_COND_INST_FULL(#__inst__ "?", eInst::__inst__ ## S, __fn__)
+
+unordered_map<string, function<int(const vector<string> &)>> instructions =
+{
+    // Break
+    CREATE_COND_INST(BRK, constructBkrInst),
+
+    // Ops
+    CREATE_COND_INST_S(ADD, constructOpsInst),
+    CREATE_COND_INST_S(SUB, constructOpsInst),
+    CREATE_COND_INST_S(MUL, constructOpsInst),
+    CREATE_COND_INST_S(DIV, constructOpsInst),
+    CREATE_COND_INST_S(AND, constructOpsInst),
+    CREATE_COND_INST_S(ORR, constructOpsInst),
+    CREATE_COND_INST_S(XOR, constructOpsInst),
+    CREATE_COND_INST_S(LSL, constructOpsInst),
+    CREATE_COND_INST_S(LSR, constructOpsInst),
+
+    // Singles
+    CREATE_COND_INST_S(MOV, constructSglInst),
+    CREATE_COND_INST_S(NOT, constructSglInst),
+    CREATE_COND_INST(CMP, constructSglInst),
+
+    // Memory (load/store)
+    CREATE_COND_INST(LDR, constructMemInst),
+    CREATE_COND_INST(LDB, constructMemInst),
+    CREATE_COND_INST(LDH, constructMemInst),
+    CREATE_COND_INST(STR, constructMemInst),
+    CREATE_COND_INST(STB, constructMemInst),
+    CREATE_COND_INST(STH, constructMemInst),
+
+    // Jumps
+    CREATE_COND_INST(JMP, constructJmpInst),
+    CREATE_COND_INST(FNC, constructJmpInst),
 };
 
 int compileLine(const vector<string> &tokens)
@@ -267,7 +695,10 @@ int compileLine(const vector<string> &tokens)
 
     if (instructions.find(inst) == instructions.end())
     {
-        return throwError(ERROR_INVALID_INSTRUCTION, string("Invalid instruction ") + inst);
+        if (inst.back() != ':') // Make sure it's not a label
+        {
+            return throwError(ERROR_INVALID_INSTRUCTION, string("Invalid instruction ") + inst);
+        }
     }
 
     if (!pCurrentSection)
@@ -275,15 +706,16 @@ int compileLine(const vector<string> &tokens)
         return throwError(ERROR_NOT_IN_SECTION, string("Not in section ") + inst);
     }
     
-    return instructions[inst](tokens);
+    pCurrentSection->tokenz.push_back(tokens);
+    return ERROR_NONE;
 }
 
 bool isSpace(char c)
 {
-    return c == ' ' || c == '\t' || c == '\r';
+    return c == ' ' || c == '\t' || c == '\r' || c == ',' || c == '#';
 }
 
-int compile(const string &filename)
+int preprocess(const string &filename)
 {
     ifstream fic(filename);
     if (fic.fail())
@@ -345,6 +777,16 @@ int compile(const string &filename)
             ++lineNum;
             continue;
         }
+        else if (c == '[' || c == ']')
+        {
+            if (!token.empty())
+            {
+                currentLine.push_back(token);
+                token.clear();
+            }
+            currentLine.push_back(string() + c);
+            continue;
+        }
         else if (isSpace(c))
         {
             if (!token.empty())
@@ -354,7 +796,7 @@ int compile(const string &filename)
             }
             continue;
         }
-        else if (c == '/' && !fic.eof())
+        else if (c == '/')
         {
             if (!token.empty())
             {
@@ -364,9 +806,220 @@ int compile(const string &filename)
             bInCommentLine = true;
             continue;
         }
+        else if (c == ';')
+        {
+            fic.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            continue;
+        }
         token += c;
     }
 
     fic.close();
     return bError ? ERROR_COMPILE : ERROR_NONE;
+}
+
+void addInstruction(uint32_t instruction)
+{
+    outputData.push_back(instruction >> 24);
+    outputData.push_back(instruction >> 16);
+    outputData.push_back(instruction >> 8);
+    outputData.push_back(instruction);
+    pc += 4;
+}
+
+void addInt(uint32_t instruction)
+{
+    outputData.push_back(instruction >> 24);
+    outputData.push_back(instruction >> 16);
+    outputData.push_back(instruction >> 8);
+    outputData.push_back(instruction);
+    pc += 4;
+}
+
+void addByte(uint32_t instruction)
+{
+    outputData.push_back(instruction);
+    pc += 1;
+}
+
+void addShort(uint32_t instruction)
+{
+    outputData.push_back(instruction >> 8);
+    outputData.push_back(instruction);
+    pc += 2;
+}
+
+int compile(const vector<sSection *> &sections)
+{
+    string inst;
+
+    // Search for labels first, and create a map to address of them
+    pc = 0;
+    for (auto pSection : sections)
+    {
+        if (pSection->position != numeric_limits<uint32_t>::max())
+        {
+            pc = pSection->position;
+        }
+        else
+        {
+            pSection->position = pc;
+        }
+        for (auto it = pSection->tokenz.begin(); it != pSection->tokenz.end();)
+        {
+            auto &tokens = *it;
+            auto &label = tokens.front();
+            if (label.back() == ':')
+            {
+                // That's a label
+                if (labels.find(label) != labels.end())
+                {
+                    return throwError(ERROR_DUPLICATE_LABEL, string("Label duplication ") + label);
+                }
+                labels[label] = pc;
+                tokens.erase(tokens.begin());
+                if (tokens.empty())
+                {
+                    it = pSection->tokenz.erase(it);
+                    continue;
+                }
+            }
+
+            inst = tokens.front();
+            transform(inst.begin(), inst.end(), inst.begin(), ::toupper);
+            if (inst == ".INT")
+            {
+                pc += (tokens.size() - 1) * 4;
+            }
+            else if (inst == ".SHORT")
+            {
+                pc += (tokens.size() - 1) * 2;
+            }
+            else if (inst == ".BYTE")
+            {
+                pc += (tokens.size() - 1) * 1;
+            }
+            else if (inst == ".SPACE")
+            {
+                if (tokens.size() < 2) return throwError(ERROR_SPACE, "Missing number after .SPACE");
+                uint32_t number;
+                auto ret = extractNumber(number, tokens[1]);
+                if (ret) return throwError(ret, string("Failed to parse number ") + tokens[1]);
+                pc += number;
+            }
+            else if (inst == ".INCBIN")
+            {
+                if (tokens.size() < 2) return throwError(ERROR_INCBIN, "Missing filename after .INCBIN");
+                auto filename = tokens[1];
+                auto ret = extractString(filename);
+                if (ret) return throwError(ret, string("Failed to parse string ") + filename);
+                filename = outputPath + filename;
+                ifstream fic(filename, ifstream::ate | ifstream::binary);
+                if (fic.fail())
+                {
+                    return throwError(ERROR_OPENING_FILE, "Can't open file " + filename);
+                }
+                pc += static_cast<uint32_t>(fic.tellg());
+                fic.close();
+            }
+            else
+            {
+                pc += 4;
+            }
+            ++it;
+        }
+    }
+
+    // Generate the code
+    pc = 0;
+    for (auto pSection : sections)
+    {
+        // Check if we have to add padding
+        while (pSection->position > pc)
+        {
+            addByte(0);
+        }
+
+        for (auto &tokens : pSection->tokenz)
+        {
+            currentInstruction = 0;
+            inst = tokens.front();
+            transform(inst.begin(), inst.end(), inst.begin(), ::toupper);
+
+            if (inst == ".INT")
+            {
+                for (size_t i = 1; i < tokens.size(); ++i)
+                {
+                    uint32_t number;
+                    auto ret = extractNumber(number, tokens[i]);
+                    if (ret) return throwError(ret, string("Failed to parse number ") + tokens[i]);
+                    addInt(number);
+                }
+            }
+            else if (inst == ".SHORT")
+            {
+                for (size_t i = 1; i < tokens.size(); ++i)
+                {
+                    uint32_t number;
+                    auto ret = extractNumber(number, tokens[i]);
+                    if (ret) return throwError(ret, string("Failed to parse number ") + tokens[i]);
+                    addShort(number);
+                }
+            }
+            else if (inst == ".BYTE")
+            {
+                for (size_t i = 1; i < tokens.size(); ++i)
+                {
+                    uint32_t number;
+                    auto ret = extractNumber(number, tokens[i]);
+                    if (ret) return throwError(ret, string("Failed to parse number ") + tokens[i]);
+                    addByte(number);
+                }
+            }
+            else if (inst == ".SPACE")
+            {
+                if (tokens.size() < 2) return throwError(ERROR_SPACE, "Missing number after .SPACE");
+                uint32_t number;
+                auto ret = extractNumber(number, tokens[1]);
+                if (ret) return throwError(ret, string("Failed to parse number ") + tokens[1]);
+                for (auto i = number; i; --i)
+                {
+                    addByte(0);
+                }
+            }
+            else if (inst == ".INCBIN")
+            {
+                if (tokens.size() < 2) return throwError(ERROR_INCBIN, "Missing filename after .INCBIN");
+                auto filename = tokens[1];
+                auto ret = extractString(filename);
+                if (ret) return throwError(ret, string("Failed to parse string ") + filename);
+                filename = outputPath + filename;
+                ifstream fic(filename, ifstream::ate | ifstream::binary);
+                if (fic.fail())
+                {
+                    return throwError(ERROR_OPENING_FILE, "Can't open file " + filename);
+                }
+                auto size = fic.tellg();
+                fic.seekg(0);
+                if (size)
+                {
+                    char *pData = new char[static_cast<uint32_t>(size)];
+                    fic.read(pData, size);
+                    for (size_t i = 0; i < size; ++i)
+                    {
+                        addByte(pData[i]);
+                    }
+                }
+                fic.close();
+            }
+            else
+            {
+                auto ret = instructions[inst](tokens);
+                if (ret) return ret;
+                addInstruction(currentInstruction);
+            }
+        }
+    }
+
+    return ERROR_NONE;
 }
