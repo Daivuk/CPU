@@ -208,26 +208,48 @@ uint32_t currentInstruction = 0;
 
 enum eInst : uint32_t
 {
-    BRK = 0x1F,
-    CMP = 0x03,
-
-    ADD = 0x00, ADDS = 0x10,
-    SUB = 0x01, SUBS = 0x11,
-    MUL = 0x02, MULS = 0x12,
-    DIV = 0x03, DIVS = 0x13,
-    AND = 0x04, ANDS = 0x14,
-    ORR = 0x05, ORRS = 0x15,
-    XOR = 0x06, XORS = 0x16,
-    LSL = 0x07, LSLS = 0x17,
-    LSR = 0x08, LSRS = 0x18,
-
-    MOV = 0x09, MOVS = 0x19,
-    NOT = 0x0A, NOTS = 0x1A,
-
-    LDR = 0x0C, LDB = 0x0D, LDH = 0x0E,
-    STR = 0x1C, STB = 0x1D, STH = 0x1E,
-
-    JMP = 0x0B, FNC = 0x1B,
+    ADD = 0x00,     // 00000
+    ADC = 0x00,     // 00000 E
+    SUB = 0x01,     // 00001
+    SBC = 0x01,     // 00001 E
+    MUL = 0x02,     // 00010
+    DIV = 0x03,     // 00011
+    AND = 0x04,     // 00100
+    ORR = 0x05,     // 00101
+    XOR = 0x06,     // 00110 
+    LSL = 0x07,     // 00111
+    RSL = 0x07,     // 00111
+    LSR = 0x08,     // 01000
+    RSR = 0x08,     // 01000 E
+    MOV = 0x09,     // 01001
+    NOT = 0x0A,     // 01010
+    JMP = 0x0B,     // 01011
+    LDR = 0x0C,     // 01100
+    POP = 0x0C,     // 01100 E
+    LDB = 0x0D,     // 01101
+    LDH = 0x0E,     // 01110
+    CMP = 0x0F,     // 01111
+    ADDS = 0x10,    // 10000
+    ADCS = 0x10,    // 10000 E
+    SUBS = 0x11,    // 10001
+    SBCS = 0x11,    // 10001 E
+    MULS = 0x12,    // 10010
+    DIVS = 0x13,    // 10011
+    ANDS = 0x14,    // 10100
+    ORRS = 0x15,    // 10101
+    XORS = 0x16,    // 10110
+    LSLS = 0x17,    // 10111
+    RSLS = 0x17,    // 10111 E
+    LSRS = 0x18,    // 11000
+    RSRS = 0x18,    // 11000 E
+    MOVS = 0x19,    // 11001
+    NOTS = 0x1A,    // 11010
+    FNC = 0x1B,     // 11011
+    STR = 0x1C,     // 11100
+    PSH = 0x1C,     // 11100 E
+    STB = 0x1D,     // 11101
+    STH = 0x1E,     // 11110
+    BRK = 0x1F,     // 11111
 };
 
 int constructImmShifter(uint32_t &out, uint32_t number, bool bInv = false)
@@ -295,7 +317,7 @@ uint32_t constructE(uint32_t number)
     return number << 1;
 }
 
-int constructOpsInst(uint32_t code, const vector<string> &tokens)
+int constructOpsInst(uint32_t code, const vector<string> &tokens, int extended = 0)
 {
     if (tokens.size() < 3)
     {
@@ -352,9 +374,14 @@ int constructOpsInst(uint32_t code, const vector<string> &tokens)
             currentInstruction |= Rr << 12;
         }
     }
-    currentInstruction |= constructE(0);
+    currentInstruction |= constructE(extended);
     currentInstruction |= code << 24;
     return ERROR_NONE;
+}
+
+int constructOpsInstExtended(uint32_t code, const vector<string> &tokens)
+{
+    return constructOpsInst(code, tokens, 1);
 }
 
 int constructSglInst(uint32_t code, const vector<string> &tokens)
@@ -412,6 +439,7 @@ int constructMemInst(uint32_t code, const vector<string> &tokens)
 
         if (tokens[4] == "]")
         {
+            currentInstruction |= 1 << 2; // No offset
             if (tokens.size() > 5)
             {
                 auto Ri = readReg(tokens[5]);
@@ -430,6 +458,10 @@ int constructMemInst(uint32_t code, const vector<string> &tokens)
                     // Register increment
                     currentInstruction |= Ri << 4;
                 }
+            }
+            else
+            {
+                currentInstruction |= 1 << 1; // No increment
             }
         }
         else
@@ -476,6 +508,10 @@ int constructMemInst(uint32_t code, const vector<string> &tokens)
                         currentInstruction |= Ri << 4;
                     }
                 }
+                else
+                {
+                    currentInstruction |= 1 << 1; // No increment
+                }
             }
         }
     }
@@ -510,6 +546,27 @@ int constructMemInst(uint32_t code, const vector<string> &tokens)
         currentInstruction |= constructI(1); // Immediate bit
     }
 
+    currentInstruction |= code << 24;
+
+    return ERROR_NONE;
+}
+
+int constructMemInstMult(uint32_t code, const vector<string> &tokens)
+{
+    if (tokens.size() < 2)
+    {
+        return throwError(ERROR_INVALID_SYNTAX, "Invalid syntax");
+    }
+
+    for (size_t i = 1; i < tokens.size(); ++i)
+    {
+        auto Rd = readReg(tokens[i]);
+        if (Rd == 0x10) return throwError(ERROR_EXPECTED_REGISTER, "Register expected " + tokens[1]);
+        currentInstruction |= 0x1 << Rd << 4;
+    }
+
+    currentInstruction |= 13 << 20;
+    currentInstruction |= 0x1 << 3;
     currentInstruction |= code << 24;
 
     return ERROR_NONE;
@@ -581,14 +638,14 @@ enum eCond : uint32_t
 };
 
 #define CREATE_COND_INST_FULL(__inst__, __instEnum__, __fn__) \
-    {__inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_ALWAYS << 4), tokens); }}, \
-    {"!" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_NEVER << 4), tokens); }}, \
-    {"==" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_EQ << 4), tokens); }}, \
-    {"!=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_NE << 4), tokens); }}, \
-    {">" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_GR << 4), tokens); }}, \
-    {">=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_GE << 4), tokens); }}, \
-    {"<" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_LO << 4), tokens); }}, \
-    {"<=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_LE << 4), tokens); }}
+    {__inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_ALWAYS << 5), tokens); }}, \
+    {"!" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_NEVER << 5), tokens); }}, \
+    {"==" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_EQ << 5), tokens); }}, \
+    {"!=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_NE << 5), tokens); }}, \
+    {">" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_GR << 5), tokens); }}, \
+    {">=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_GE << 5), tokens); }}, \
+    {"<" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_LO << 5), tokens); }}, \
+    {"<=" __inst__, [](const vector<string> &tokens) -> int {return __fn__(__instEnum__ | (COND_LE << 5), tokens); }}
 
 #define CREATE_COND_INST(__inst__, __fn__) \
     CREATE_COND_INST_FULL(#__inst__, eInst::__inst__, __fn__)
@@ -613,6 +670,12 @@ unordered_map<string, function<int(const vector<string> &)>> instructions =
     CREATE_COND_INST_S(LSL, constructOpsInst),
     CREATE_COND_INST_S(LSR, constructOpsInst),
 
+    // Extended Ops
+    CREATE_COND_INST_S(ADC, constructOpsInstExtended),
+    CREATE_COND_INST_S(SBC, constructOpsInstExtended),
+    CREATE_COND_INST_S(RSL, constructOpsInstExtended),
+    CREATE_COND_INST_S(RSR, constructOpsInstExtended),
+
     // Singles
     CREATE_COND_INST_S(MOV, constructSglInst),
     CREATE_COND_INST_S(NOT, constructSglInst),
@@ -622,9 +685,11 @@ unordered_map<string, function<int(const vector<string> &)>> instructions =
     CREATE_COND_INST(LDR, constructMemInst),
     CREATE_COND_INST(LDB, constructMemInst),
     CREATE_COND_INST(LDH, constructMemInst),
+    CREATE_COND_INST(PSH, constructMemInstMult),
     CREATE_COND_INST(STR, constructMemInst),
     CREATE_COND_INST(STB, constructMemInst),
     CREATE_COND_INST(STH, constructMemInst),
+    CREATE_COND_INST(POP, constructMemInstMult),
 
     // Jumps
     CREATE_COND_INST(JMP, constructJmpInst),
@@ -820,19 +885,19 @@ int preprocess(const string &filename)
 
 void addInstruction(uint32_t instruction)
 {
-    outputData.push_back(instruction >> 24);
-    outputData.push_back(instruction >> 16);
-    outputData.push_back(instruction >> 8);
     outputData.push_back(instruction);
+    outputData.push_back(instruction >> 8);
+    outputData.push_back(instruction >> 16);
+    outputData.push_back(instruction >> 24);
     pc += 4;
 }
 
 void addInt(uint32_t instruction)
 {
-    outputData.push_back(instruction >> 24);
-    outputData.push_back(instruction >> 16);
-    outputData.push_back(instruction >> 8);
     outputData.push_back(instruction);
+    outputData.push_back(instruction >> 8);
+    outputData.push_back(instruction >> 16);
+    outputData.push_back(instruction >> 24);
     pc += 4;
 }
 
@@ -844,8 +909,8 @@ void addByte(uint32_t instruction)
 
 void addShort(uint32_t instruction)
 {
-    outputData.push_back(instruction >> 8);
     outputData.push_back(instruction);
+    outputData.push_back(instruction >> 8);
     pc += 2;
 }
 
