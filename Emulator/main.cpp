@@ -1,4 +1,5 @@
 #include <cassert>
+#include <chrono>
 #include <Windows.h>
 
 #include "CLRBridge.h"
@@ -11,10 +12,39 @@ Processor *pProcessor = nullptr;
 PPU *pPPU = nullptr;
 void *pProgram = nullptr;
 uint32_t programSize = 0;
+volatile bool bRunning = true;
+HWND target = 0;
 
 int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
 {
     showFrmMain();
+
+    //while (bRunning)
+    //{
+    //    MSG msg = {0};
+    //    if (PeekMessage(&msg, target, 0, 0, PM_REMOVE))
+    //    {
+    //        TranslateMessage(&msg);
+    //        DispatchMessage(&msg);
+
+    //        if (msg.message == WM_QUIT)
+    //        {
+    //            bRunning = false;
+    //            break;
+    //        }
+    //    }
+
+    //    auto before = std::chrono::high_resolution_clock::now();
+    //    FrmMain_PPUTimer_Tick();
+    //    auto after = std::chrono::high_resolution_clock::now();
+    //    auto elapsed = after - before;
+    //    auto totalExpected = std::chrono::milliseconds(17);
+    //    if (elapsed < totalExpected)
+    //    {
+    //        auto remaining = totalExpected - elapsed;
+    //        std::this_thread::sleep_for(remaining);
+    //    }
+    //}
 
     pProcessor->powerOff();
 
@@ -24,6 +54,11 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE hPrevInstance, _In
     delete[] pProgram;
 
     return 0;
+}
+
+void FrmMain_Closing()
+{
+    bRunning = false;
 }
 
 void FrmMain_load(void *pTarget)
@@ -41,7 +76,8 @@ void FrmMain_load(void *pTarget)
 
     pRAM = new RAM(1 << 15);
     pProcessor = new DV1509(pRAM);
-    pPPU = new PPU(pProcessor, (HWND)pTarget);
+    target = (HWND)pTarget;
+    pPPU = new PPU(pProcessor, target);
 }
 
 void loadProgramToRam()

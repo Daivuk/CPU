@@ -850,6 +850,11 @@ int preprocess(const string &filename)
             if (c == '/')
             {
                 fic.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                if (!currentLine.empty())
+                {
+                    if (compileLine(currentLine)) bError = true;
+                    currentLine.clear();
+                }
                 continue;
             }
             else if (c == '*')

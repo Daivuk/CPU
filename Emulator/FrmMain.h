@@ -161,6 +161,7 @@ namespace Emulator {
             this->picPPU->Size = System::Drawing::Size(514, 482);
             this->picPPU->TabIndex = 0;
             this->picPPU->TabStop = false;
+            this->picPPU->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &FrmMain::picPPU_Paint);
             // 
             // label1
             // 
@@ -569,6 +570,7 @@ namespace Emulator {
             this->Controls->Add(this->picPPU);
             this->Name = L"FrmMain";
             this->Text = L"DV1032 Emulator";
+            this->FormClosing += gcnew System::Windows::Forms::FormClosingEventHandler(this, &FrmMain::FrmMain_FormClosing);
             this->Load += gcnew System::EventHandler(this, &FrmMain::FrmMain_Load);
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->picPPU))->EndInit();
             this->ResumeLayout(false);
@@ -626,6 +628,13 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 private: System::Void PPUTimer_Tick(System::Object^  sender, System::EventArgs^  e)
 {
     FrmMain_PPUTimer_Tick();
+}
+private: System::Void FrmMain_FormClosing(System::Object^  sender, System::Windows::Forms::FormClosingEventArgs^  e)
+{
+    FrmMain_Closing();
+}
+private: System::Void picPPU_Paint(System::Object^  sender, System::Windows::Forms::PaintEventArgs^  e)
+{
 }
 };
 }

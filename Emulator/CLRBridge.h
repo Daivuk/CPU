@@ -7,3 +7,4 @@ void FrmMain_powerOff();
 void FrmMain_reset();
 void getRegisters(uint32_t *outRegisters);
 void FrmMain_PPUTimer_Tick();
+void FrmMain_Closing();

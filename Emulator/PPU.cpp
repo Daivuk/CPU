@@ -5,7 +5,7 @@
 #define SCREEN_W 256
 #define SCREEN_H 240
 
-#define VIDEO_ADDR 0x3FBC
+#define VIDEO_ADDR 0x3FC0
 #define ATR_W 16
 #define ATR_H 16
 #define NAM_W (ATR_W * 2)
@@ -181,11 +181,12 @@ void PPU::draw()
         auto VIDEO_SCAN_LINE_IRQ = m_pRAM->read32(VIDEO_ADDR + 4);
         auto VIDEO_VSYNC_IRQ = m_pRAM->read32(VIDEO_ADDR + 8);
         auto pVIDEO_BG_PATTERN = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 12));
+        auto pVIDEO_SP_PATTERN = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 16));
         auto pVIDEO_BG_NAM = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 20));
-        auto pVIDEO_BG_ATR = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 24));
-        auto VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 28);
-        auto VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 32);
-        auto pVIDEO_BG_PAL = (uint8_t *)m_pRAM->getPointer(VIDEO_ADDR + 36);
+        auto pVIDEO_BG_ATR = pVIDEO_BG_NAM + 960;
+        auto VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 24);
+        auto VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 28);
+        auto pVIDEO_BG_PAL = (uint8_t *)m_pRAM->getPointer(VIDEO_ADDR + 32);
 
         // Trigger VBlank IRQ
         m_pProcessor->IRQ(VIDEO_VSYNC_IRQ);
@@ -205,8 +206,8 @@ void PPU::draw()
             {
                 m_pProcessor->tick();
             }
-            VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 28);
-            VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 32);
+            VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 24);
+            VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 28);
 
             auto tileY = y / TILE_H;
             auto inTileY = y - tileY * TILE_H;
@@ -230,11 +231,11 @@ void PPU::draw()
 
                 auto attribId = (attribY % 8) * 8 + attribX % 8;
                 auto attribLine = pVIDEO_BG_ATR[attribId];
-                auto attribBitShift = inAttribY * 4 + inAttribX * 2;
+                auto attribBitShift = (inAttribY % 8) * 4 + (inAttribX % 8) * 2;
                 auto attribPal = (attribLine >> attribBitShift) & 0x3;
                 attribPal *= 4;
 
-                *ptr = NESpalette[(pVIDEO_BG_PAL + attribPal)[color]];
+                *ptr = NESpalette[pVIDEO_BG_PAL[attribPal + color]];
             }
         }
 
