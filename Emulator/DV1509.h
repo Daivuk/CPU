@@ -9,6 +9,7 @@ public:
     virtual ~DV1509();
 
     void getRegisters(uint32_t *outRegisters) const;
+    void IRQ(uint32_t addr);
 
 protected:
     virtual void init();

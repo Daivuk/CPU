@@ -7,7 +7,7 @@
 
 #define VIDEO_ADDR 0x3FBC
 #define ATR_W 16
-#define ATR_H 15
+#define ATR_H 16
 #define NAM_W (ATR_W * 2)
 #define NAM_H (ATR_H * 2)
 
@@ -173,8 +173,13 @@ void PPU::draw()
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, glTexture_frameBuffer);
 
+    static uint32_t offsetX = 0;
+    static uint32_t offsetY = 0;
+
     if (bPPUEnabled)
     {
+        auto VIDEO_SCAN_LINE_IRQ = m_pRAM->read32(VIDEO_ADDR + 4);
+        auto VIDEO_VSYNC_IRQ = m_pRAM->read32(VIDEO_ADDR + 8);
         auto pVIDEO_BG_PATTERN = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 12));
         auto pVIDEO_BG_NAM = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 20));
         auto pVIDEO_BG_ATR = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 24));
@@ -182,21 +187,30 @@ void PPU::draw()
         auto VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 32);
         auto pVIDEO_BG_PAL = (uint8_t *)m_pRAM->getPointer(VIDEO_ADDR + 36);
 
+        // Trigger VBlank IRQ
+        m_pProcessor->IRQ(VIDEO_VSYNC_IRQ);
+        for (uint32_t i = 0; i < 17000 - SCREEN_H * 32; ++i)
+        {
+            m_pProcessor->tick();
+        }
+
         // Do scan lines!
         uint32_t *ptr = m_pScreenData;
         uint32_t tileId;
-        for (uint32_t y = 0; y < SCREEN_H; ++y)
+        for (uint32_t y = VIDEO_BG_OFFSET_Y; y < SCREEN_H + VIDEO_BG_OFFSET_Y; ++y)
         {
-            auto tileY = (y + VIDEO_BG_OFFSET_Y) / TILE_H;
-            auto inTileY = y - tileY * TILE_H;
-            for (uint32_t x = 0; x < SCREEN_W; ++x, ++ptr)
+            // Trigger scan line IRQ
+            m_pProcessor->IRQ(VIDEO_SCAN_LINE_IRQ);
+            for (uint32_t i = 0; i < 32; ++i)
             {
-                if (x == 18 * 8 && y == 6 * 8)
-                {
-                    int tmp;
-                    tmp = 5;
-                }
-                auto tileX = (x + VIDEO_BG_OFFSET_X) / TILE_W;
+                m_pProcessor->tick();
+            }
+
+            auto tileY = y / TILE_H;
+            auto inTileY = y - tileY * TILE_H;
+            for (uint32_t x = VIDEO_BG_OFFSET_X; x < SCREEN_W + VIDEO_BG_OFFSET_X; ++x, ++ptr)
+            {
+                auto tileX = x / TILE_W;
                 auto inTileX = x - tileX * TILE_W;
                 tileId = pVIDEO_BG_NAM[(tileY % NAM_H) * NAM_W + tileX % NAM_W];
 
@@ -207,8 +221,8 @@ void PPU::draw()
                     (((bits1 >> (7 - inTileX)) & 0x1)) |
                     (((bits2 >> (7 - inTileX)) & 0x1) << 1);
 
-                auto attribX = (x + VIDEO_BG_OFFSET_X) / (TILE_W * 4);
-                auto attribY = (y + VIDEO_BG_OFFSET_Y) / (TILE_H * 4);
+                auto attribX = x / (TILE_W * 4);
+                auto attribY = y / (TILE_H * 4);
                 auto inAttribX = (x - attribX * (TILE_W * 4)) / (TILE_W * 2);
                 auto inAttribY = (y - attribY * (TILE_H * 4)) / (TILE_H * 2);
 
@@ -223,6 +237,13 @@ void PPU::draw()
         }
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCREEN_W, SCREEN_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_pScreenData);
+    }
+    else
+    {
+        for (uint32_t i = 0; i < 17000; ++i)
+        {
+            m_pProcessor->tick();
+        }
     }
 
     glColor4f(1, 1, 1, 1);

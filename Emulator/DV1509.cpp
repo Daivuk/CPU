@@ -91,6 +91,12 @@ enum eCond : uint32_t
     COND_LE = 0x7
 };
 
+void DV1509::IRQ(uint32_t dstAddr)
+{
+    m_registers[LR] = m_registers[PC];
+    m_registers[PC] = dstAddr;
+}
+
 bool DV1509::tick()
 {
     // Fetch instruction
