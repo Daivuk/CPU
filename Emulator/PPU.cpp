@@ -205,6 +205,8 @@ void PPU::draw()
             {
                 m_pProcessor->tick();
             }
+            VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 28);
+            VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 32);
 
             auto tileY = y / TILE_H;
             auto inTileY = y - tileY * TILE_H;

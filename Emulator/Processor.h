@@ -23,7 +23,7 @@ protected:
     virtual void init() = 0;
 
 private:
-    volatile bool m_bRunning = false;
+    bool m_bRunning = false;
     RAM *m_pRAM = nullptr;
     uint64_t m_clockSpeed = 1000000; // Default to 1mhz
 };

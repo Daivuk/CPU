@@ -6,28 +6,32 @@
 .compiler section video 0x3FBC
 .compiler section end
 
-// Defines
-
 .section start
 jmp main
 
 .section data
-PATTERN_MAIN: .incbin "main.chr"
-NAM_LVL1_1: .incbin "lvl1_1.nam"
-ATR_LVL1_1: .incbin "lvl1_1.atr"
+// Global variables
+g_currentScanLine:	.int 0
+g_offsetX:			.int 0
+
+// Data
+PATTERN_MAIN:		.incbin "main.chr"
+NAM_LVL1_1:			.incbin "lvl1_1.nam"
+ATR_LVL1_1:			.incbin "lvl1_1.atr"
 
 .section video
-VIDEO_ENABLED: .int 0
-VIDEO_SCAN_LINE_IRQ: .int 0
-VIDEO_VSYNC_IRQ: .int 0
-VIDEO_BG_PATTERN: .int 0
-VIDEO_SP_PATTERN: .int 0
-VIDEO_BG_NAM: .int 0
-VIDEO_BG_ATR: .int 0
-VIDEO_BG_OFFSET_X: .int 0
-VIDEO_BG_OFFSET_Y: .int 0
-VIDEO_BG_PAL: .byte 0x0f,0x37,0x27,0x17,0x0f,0x18,0x08,0x0f,0x0f,0x1c,0x2c,0x3c,0x0f,0x2c,0x07,0x16
-VIDEO_SP_PAL: .byte 0x0f,0x37,0x27,0x17,0x0f,0x18,0x08,0x0f,0x0f,0x1c,0x2c,0x3c,0x0f,0x2c,0x07,0x16
+// Video labels
+VIDEO_ENABLED:			.int 0
+VIDEO_SCAN_LINE_IRQ:	.int 0
+VIDEO_VSYNC_IRQ:		.int 0
+VIDEO_BG_PATTERN:		.int 0
+VIDEO_SP_PATTERN:		.int 0
+VIDEO_BG_NAM:			.int 0
+VIDEO_BG_ATR:			.int 0
+VIDEO_BG_OFFSET_X:		.int 0
+VIDEO_BG_OFFSET_Y:		.int 0
+VIDEO_BG_PAL:			.byte 0x0f,0x37,0x27,0x17,0x0f,0x18,0x08,0x0f,0x0f,0x1c,0x2c,0x3c,0x0f,0x2c,0x07,0x16
+VIDEO_SP_PAL:			.byte 0x0f,0x37,0x27,0x17,0x0f,0x18,0x08,0x0f,0x0f,0x1c,0x2c,0x3c,0x0f,0x2c,0x07,0x16
 
 .section code
 main:
@@ -62,14 +66,35 @@ main:
 	mov r1 1
 	str r1 [r0]
 
-	main_loop: 
-		jmp main_loop
+	brk
 
 onScanLine:
-	jmp onScanLine
+	ldr r0 g_currentScanLine
+	ldr r0 [r0]
+
+	cmp r0 32
+	==ldr r1 g_offsetX
+	==ldr r1 [r1]
+	==str r1 VIDEO_BG_OFFSET_X
+
+	add r0 1
+	str r0 g_currentScanLine
+
+	brk
 
 onVsync:
-	jmp onVsync
+	// Reset some stuff to 9
+	mov r0 0
+	str r0 VIDEO_BG_OFFSET_X
+	str r0 g_currentScanLine
+
+	// Move the screen horizontally
+	ldr r0 g_offsetX
+	ldr r0 [r0]
+	add r0 1
+	str r0 g_offsetX
+
+	brk
 	
 .section end
 end:

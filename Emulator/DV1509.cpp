@@ -333,8 +333,18 @@ bool DV1509::tick()
                     }
                     if (bStore)
                     {
-                        assert(false);
-                        return false;
+                        switch (count)
+                        {
+                            case 0:
+                                getRAM()->write32(dstAddr, m_registers[Rd]);
+                                break;
+                            case 1:
+                                getRAM()->write8(dstAddr, static_cast<uint8_t>(m_registers[Rd]));
+                                break;
+                            case 2:
+                                getRAM()->write16(dstAddr, static_cast<uint16_t>(m_registers[Rd]));
+                                break;
+                        }
                     }
                     else
                     {
