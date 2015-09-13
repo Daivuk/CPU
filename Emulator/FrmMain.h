@@ -37,7 +37,9 @@ namespace Emulator {
 				delete components;
 			}
 		}
-    private: System::Windows::Forms::PictureBox^  pictureBox1;
+    private: System::Windows::Forms::PictureBox^  picPPU;
+    protected:
+
     private: System::Windows::Forms::Label^  label1;
     private: System::Windows::Forms::Label^  lbl_r0;
     private: System::Windows::Forms::Label^  label2;
@@ -88,6 +90,7 @@ namespace Emulator {
     private: System::Windows::Forms::Button^  btnPowerToggle;
     private: System::Windows::Forms::Button^  btnReset;
     private: System::Windows::Forms::Timer^  timer1;
+    private: System::Windows::Forms::Timer^  PPUTimer;
     private: System::ComponentModel::IContainer^  components;
 
 
@@ -108,7 +111,7 @@ namespace Emulator {
 		void InitializeComponent(void)
 		{
             this->components = (gcnew System::ComponentModel::Container());
-            this->pictureBox1 = (gcnew System::Windows::Forms::PictureBox());
+            this->picPPU = (gcnew System::Windows::Forms::PictureBox());
             this->label1 = (gcnew System::Windows::Forms::Label());
             this->lbl_r0 = (gcnew System::Windows::Forms::Label());
             this->label2 = (gcnew System::Windows::Forms::Label());
@@ -144,19 +147,20 @@ namespace Emulator {
             this->btnPowerToggle = (gcnew System::Windows::Forms::Button());
             this->btnReset = (gcnew System::Windows::Forms::Button());
             this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
-            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pictureBox1))->BeginInit();
+            this->PPUTimer = (gcnew System::Windows::Forms::Timer(this->components));
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->picPPU))->BeginInit();
             this->SuspendLayout();
             // 
-            // pictureBox1
+            // picPPU
             // 
-            this->pictureBox1->Anchor = System::Windows::Forms::AnchorStyles::Top;
-            this->pictureBox1->BackColor = System::Drawing::Color::Black;
-            this->pictureBox1->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
-            this->pictureBox1->Location = System::Drawing::Point(164, 12);
-            this->pictureBox1->Name = L"pictureBox1";
-            this->pictureBox1->Size = System::Drawing::Size(512, 480);
-            this->pictureBox1->TabIndex = 0;
-            this->pictureBox1->TabStop = false;
+            this->picPPU->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->picPPU->BackColor = System::Drawing::Color::Black;
+            this->picPPU->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
+            this->picPPU->Location = System::Drawing::Point(163, 11);
+            this->picPPU->Name = L"picPPU";
+            this->picPPU->Size = System::Drawing::Size(514, 482);
+            this->picPPU->TabIndex = 0;
+            this->picPPU->TabStop = false;
             // 
             // label1
             // 
@@ -518,6 +522,11 @@ namespace Emulator {
             // 
             this->timer1->Tick += gcnew System::EventHandler(this, &FrmMain::timer1_Tick);
             // 
+            // PPUTimer
+            // 
+            this->PPUTimer->Interval = 17;
+            this->PPUTimer->Tick += gcnew System::EventHandler(this, &FrmMain::PPUTimer_Tick);
+            // 
             // FrmMain
             // 
             this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
@@ -557,11 +566,11 @@ namespace Emulator {
             this->Controls->Add(this->label2);
             this->Controls->Add(this->lbl_r0);
             this->Controls->Add(this->label1);
-            this->Controls->Add(this->pictureBox1);
+            this->Controls->Add(this->picPPU);
             this->Name = L"FrmMain";
             this->Text = L"DV1032 Emulator";
             this->Load += gcnew System::EventHandler(this, &FrmMain::FrmMain_Load);
-            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pictureBox1))->EndInit();
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->picPPU))->EndInit();
             this->ResumeLayout(false);
             this->PerformLayout();
 
@@ -569,7 +578,8 @@ namespace Emulator {
 #pragma endregion
     private: System::Void FrmMain_Load(System::Object^  sender, System::EventArgs^  e)
     {
-        FrmMain_load();
+        FrmMain_load(picPPU->Handle.ToPointer());
+        PPUTimer->Start();
     }
 private: System::Void btnPowerToggle_Click(System::Object^  sender, System::EventArgs^  e)
 {
@@ -612,6 +622,10 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
     lbl_sp->Text = "0x" + System::Convert::ToString((int)registers[13], 16);
     lbl_lr->Text = "0x" + System::Convert::ToString((int)registers[14], 16);
     lbl_pc->Text = "0x" + System::Convert::ToString((int)registers[15], 16);
+}
+private: System::Void PPUTimer_Tick(System::Object^  sender, System::EventArgs^  e)
+{
+    FrmMain_PPUTimer_Tick();
 }
 };
 }

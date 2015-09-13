@@ -23,6 +23,7 @@ string outputPath;
 vector<uint8_t> outputData;
 unordered_map<string, uint32_t> labels;
 uint32_t pc = 0;
+unordered_map<string, vector<string>> defines;
 
 int preprocess(const string &filename);
 int compile(const vector<sSection *> &sections);
@@ -696,8 +697,21 @@ unordered_map<string, function<int(const vector<string> &)>> instructions =
     CREATE_COND_INST(FNC, constructJmpInst),
 };
 
-int compileLine(const vector<string> &tokens)
+int compileLine(vector<string> &tokens)
 {
+    // Replace any tokens that is a define with its defined tokens
+    for (auto it = tokens.begin(); it != tokens.end();)
+    {
+        auto defineIT = defines.find(*it);
+        if (defineIT != defines.end())
+        {
+            it = tokens.erase(it);
+            it = tokens.insert(it, defineIT->second.begin(), defineIT->second.end());
+            continue;
+        }
+        ++it;
+    }
+
     auto inst = tokens.front();
     transform(inst.begin(), inst.end(), inst.begin(), ::toupper);
 
@@ -757,6 +771,23 @@ int compileLine(const vector<string> &tokens)
         pCurrentSection = sectionMap[sectionName];
         return ERROR_NONE;
     }
+    else if (inst == ".DEFINE")
+    {
+        if (tokens.size() < 3)
+        {
+            return throwError(ERROR_SECTION, "Expected at least 2 arguments after define");
+        }
+        defines[tokens[1]] = vector<string>(tokens.begin() + 2, tokens.end());
+        return ERROR_NONE;
+    }
+    else if (inst == ".INCBIN" ||
+             inst == ".BYTE" ||
+             inst == ".SHORT" ||
+             inst == ".INT" ||
+             inst == ".SPACE")
+    {
+        return ERROR_NONE;
+    }
 
     if (instructions.find(inst) == instructions.end())
     {
@@ -770,7 +801,7 @@ int compileLine(const vector<string> &tokens)
     {
         return throwError(ERROR_NOT_IN_SECTION, string("Not in section ") + inst);
     }
-    
+
     pCurrentSection->tokenz.push_back(tokens);
     return ERROR_NONE;
 }

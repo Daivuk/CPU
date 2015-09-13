@@ -9,6 +9,8 @@ public:
     Processor(RAM *pRAM);
     virtual ~Processor();
 
+    bool isRunning() const { return m_bRunning; }
+
     void powerOn();
     void powerOff();
     void setClockSpeed(uint64_t clockSpeed);

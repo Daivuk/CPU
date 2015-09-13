@@ -8,6 +8,8 @@ public:
 
     void setClockSpeed(uint64_t clockSpeed);
 
+    void *getPointer(uint32_t address) const;
+
     uint8_t read8(uint32_t address) const;
     uint16_t read16(uint32_t address) const;
     uint32_t read32(uint32_t address) const;

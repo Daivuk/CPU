@@ -22,6 +22,12 @@ void RAM::setClockSpeed(uint64_t clockSpeed)
     m_clockSpeed = clockSpeed;
 }
 
+void *RAM::getPointer(uint32_t address) const
+{
+    assert(address >= 0 && address <= m_size - 1); // Out of range
+    return (uint8_t *)m_pData + address;
+}
+
 uint8_t RAM::read8(uint32_t address) const
 {
     assert(address >= 0 && address <= m_size - 1); // Out of range

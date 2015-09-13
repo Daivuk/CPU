@@ -76,7 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="compiler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Samples\helloworld.asm">

@@ -4,9 +4,11 @@
 #include "CLRBridge.h"
 #include "DV1509.h"
 #include "RAM.h"
+#include "PPU.h"
 
 RAM *pRAM = nullptr;
 Processor *pProcessor = nullptr;
+PPU *pPPU = nullptr;
 void *pProgram = nullptr;
 uint32_t programSize = 0;
 
@@ -14,6 +16,9 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE hPrevInstance, _In
 {
     showFrmMain();
 
+    pProcessor->powerOff();
+
+    delete pPPU;
     delete pProcessor;
     delete pRAM;
     delete[] pProgram;
@@ -21,7 +26,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE hPrevInstance, _In
     return 0;
 }
 
-void FrmMain_load()
+void FrmMain_load(void *pTarget)
 {
     FILE *pFic = nullptr;
     fopen_s(&pFic, "../Samples/helloworld.elf", "rb");
@@ -34,8 +39,9 @@ void FrmMain_load()
     fread(pProgram, 1, programSize, pFic);
     fclose(pFic);
 
-    pRAM = new RAM(1 << 14);
+    pRAM = new RAM(1 << 15);
     pProcessor = new DV1509(pRAM);
+    pPPU = new PPU(pProcessor, (HWND)pTarget);
 }
 
 void loadProgramToRam()
@@ -64,4 +70,12 @@ void FrmMain_reset()
 void getRegisters(uint32_t *outRegisters)
 {
     ((DV1509 *)pProcessor)->getRegisters(outRegisters);
+}
+
+void FrmMain_PPUTimer_Tick()
+{
+    if (pProcessor->isRunning())
+    {
+        pPPU->draw();
+    }
 }
