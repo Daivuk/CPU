@@ -13,11 +13,18 @@ jmp main
 // Global variables
 g_currentScanLine:      .int 0
 g_offsetX:              .int 0
+g_offsetY:              .int 0
 
 // Data
 PATTERN_MAIN:           .incbin "main.chr"
 NAM_LVL1_1:             .incbin "lvl1_1.nam"
-ATR_LVL1_1:             .incbin "lvl1_1.atr"
+                        .incbin "lvl1_1.atr"
+                        .incbin "lvl1_1.nam"
+                        .incbin "lvl1_1.atr"
+                        .incbin "lvl1_1.nam"
+                        .incbin "lvl1_1.atr"
+                        .incbin "lvl1_1.nam"
+                        .incbin "lvl1_1.atr"
 
 .section video
 // Video labels
@@ -66,6 +73,9 @@ onScanLine:
     ==ldr r1 g_offsetX
     ==ldr r1 [r1]
     ==str r1 VIDEO_BG_OFFSET_X
+    ==ldr r1 g_offsetY
+    ==ldr r1 [r1]
+    ==str r1 VIDEO_BG_OFFSET_Y
 
     add r0 1
     str r0 g_currentScanLine
@@ -76,6 +86,7 @@ onVsync:
     // Reset some stuff to 9
     mov r0 0
     str r0 VIDEO_BG_OFFSET_X
+    str r0 VIDEO_BG_OFFSET_Y
     str r0 g_currentScanLine
 
     // Move the screen horizontally
@@ -83,6 +94,9 @@ onVsync:
     ldr r0 [r0]
     add r0 1
     str r0 g_offsetX
+
+    // And vertically
+    str r0 g_offsetY
     
     brk
     

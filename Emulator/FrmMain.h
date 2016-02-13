@@ -153,7 +153,9 @@ namespace Emulator {
             // 
             // picPPU
             // 
-            this->picPPU->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->picPPU->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+                | System::Windows::Forms::AnchorStyles::Left)
+                | System::Windows::Forms::AnchorStyles::Right));
             this->picPPU->BackColor = System::Drawing::Color::Black;
             this->picPPU->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
             this->picPPU->Location = System::Drawing::Point(163, 11);
@@ -165,7 +167,7 @@ namespace Emulator {
             // 
             // label1
             // 
-            this->label1->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label1->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label1->Location = System::Drawing::Point(684, 13);
             this->label1->Name = L"label1";
             this->label1->Size = System::Drawing::Size(23, 13);
@@ -174,7 +176,7 @@ namespace Emulator {
             // 
             // lbl_r0
             // 
-            this->lbl_r0->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r0->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r0->AutoSize = true;
             this->lbl_r0->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -186,7 +188,7 @@ namespace Emulator {
             // 
             // label2
             // 
-            this->label2->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label2->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label2->Location = System::Drawing::Point(684, 26);
             this->label2->Name = L"label2";
             this->label2->Size = System::Drawing::Size(23, 13);
@@ -195,7 +197,7 @@ namespace Emulator {
             // 
             // lbl_r1
             // 
-            this->lbl_r1->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r1->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r1->AutoSize = true;
             this->lbl_r1->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -207,7 +209,7 @@ namespace Emulator {
             // 
             // label4
             // 
-            this->label4->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label4->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label4->Location = System::Drawing::Point(684, 39);
             this->label4->Name = L"label4";
             this->label4->Size = System::Drawing::Size(23, 13);
@@ -216,7 +218,7 @@ namespace Emulator {
             // 
             // lbl_r2
             // 
-            this->lbl_r2->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r2->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r2->AutoSize = true;
             this->lbl_r2->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -228,7 +230,7 @@ namespace Emulator {
             // 
             // label6
             // 
-            this->label6->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label6->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label6->Location = System::Drawing::Point(684, 52);
             this->label6->Name = L"label6";
             this->label6->Size = System::Drawing::Size(23, 13);
@@ -237,7 +239,7 @@ namespace Emulator {
             // 
             // lbl_r3
             // 
-            this->lbl_r3->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r3->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r3->AutoSize = true;
             this->lbl_r3->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -249,7 +251,7 @@ namespace Emulator {
             // 
             // label8
             // 
-            this->label8->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label8->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label8->Location = System::Drawing::Point(684, 73);
             this->label8->Name = L"label8";
             this->label8->Size = System::Drawing::Size(23, 13);
@@ -258,7 +260,7 @@ namespace Emulator {
             // 
             // lbl_r4
             // 
-            this->lbl_r4->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r4->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r4->AutoSize = true;
             this->lbl_r4->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -270,7 +272,7 @@ namespace Emulator {
             // 
             // label10
             // 
-            this->label10->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label10->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label10->Location = System::Drawing::Point(684, 86);
             this->label10->Name = L"label10";
             this->label10->Size = System::Drawing::Size(23, 13);
@@ -279,7 +281,7 @@ namespace Emulator {
             // 
             // lbl_r5
             // 
-            this->lbl_r5->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r5->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r5->AutoSize = true;
             this->lbl_r5->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -291,7 +293,7 @@ namespace Emulator {
             // 
             // label12
             // 
-            this->label12->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label12->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label12->Location = System::Drawing::Point(684, 99);
             this->label12->Name = L"label12";
             this->label12->Size = System::Drawing::Size(23, 13);
@@ -300,7 +302,7 @@ namespace Emulator {
             // 
             // lbl_r6
             // 
-            this->lbl_r6->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r6->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r6->AutoSize = true;
             this->lbl_r6->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -312,7 +314,7 @@ namespace Emulator {
             // 
             // label14
             // 
-            this->label14->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label14->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label14->Location = System::Drawing::Point(684, 112);
             this->label14->Name = L"label14";
             this->label14->Size = System::Drawing::Size(23, 13);
@@ -321,7 +323,7 @@ namespace Emulator {
             // 
             // lbl_r7
             // 
-            this->lbl_r7->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r7->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r7->AutoSize = true;
             this->lbl_r7->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -333,7 +335,7 @@ namespace Emulator {
             // 
             // label16
             // 
-            this->label16->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label16->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label16->Location = System::Drawing::Point(684, 125);
             this->label16->Name = L"label16";
             this->label16->Size = System::Drawing::Size(23, 13);
@@ -342,7 +344,7 @@ namespace Emulator {
             // 
             // lbl_r8
             // 
-            this->lbl_r8->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r8->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r8->AutoSize = true;
             this->lbl_r8->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -354,7 +356,7 @@ namespace Emulator {
             // 
             // label18
             // 
-            this->label18->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label18->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label18->Location = System::Drawing::Point(684, 138);
             this->label18->Name = L"label18";
             this->label18->Size = System::Drawing::Size(23, 13);
@@ -363,7 +365,7 @@ namespace Emulator {
             // 
             // lbl_r9
             // 
-            this->lbl_r9->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r9->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r9->AutoSize = true;
             this->lbl_r9->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -375,7 +377,7 @@ namespace Emulator {
             // 
             // label20
             // 
-            this->label20->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label20->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label20->Location = System::Drawing::Point(684, 151);
             this->label20->Name = L"label20";
             this->label20->Size = System::Drawing::Size(23, 13);
@@ -384,7 +386,7 @@ namespace Emulator {
             // 
             // lbl_r10
             // 
-            this->lbl_r10->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r10->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r10->AutoSize = true;
             this->lbl_r10->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -396,7 +398,7 @@ namespace Emulator {
             // 
             // label22
             // 
-            this->label22->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label22->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label22->Location = System::Drawing::Point(684, 164);
             this->label22->Name = L"label22";
             this->label22->Size = System::Drawing::Size(23, 13);
@@ -405,7 +407,7 @@ namespace Emulator {
             // 
             // lbl_r11
             // 
-            this->lbl_r11->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r11->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r11->AutoSize = true;
             this->lbl_r11->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -417,7 +419,7 @@ namespace Emulator {
             // 
             // label24
             // 
-            this->label24->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label24->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label24->Location = System::Drawing::Point(684, 177);
             this->label24->Name = L"label24";
             this->label24->Size = System::Drawing::Size(23, 13);
@@ -426,7 +428,7 @@ namespace Emulator {
             // 
             // lbl_r12
             // 
-            this->lbl_r12->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_r12->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_r12->AutoSize = true;
             this->lbl_r12->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -438,7 +440,7 @@ namespace Emulator {
             // 
             // label26
             // 
-            this->label26->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label26->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label26->Location = System::Drawing::Point(684, 198);
             this->label26->Name = L"label26";
             this->label26->Size = System::Drawing::Size(23, 13);
@@ -447,7 +449,7 @@ namespace Emulator {
             // 
             // lbl_sp
             // 
-            this->lbl_sp->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_sp->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_sp->AutoSize = true;
             this->lbl_sp->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -459,7 +461,7 @@ namespace Emulator {
             // 
             // label28
             // 
-            this->label28->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label28->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label28->Location = System::Drawing::Point(684, 211);
             this->label28->Name = L"label28";
             this->label28->Size = System::Drawing::Size(23, 13);
@@ -468,7 +470,7 @@ namespace Emulator {
             // 
             // lbl_lr
             // 
-            this->lbl_lr->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_lr->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_lr->AutoSize = true;
             this->lbl_lr->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));
@@ -480,7 +482,7 @@ namespace Emulator {
             // 
             // label30
             // 
-            this->label30->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->label30->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->label30->Location = System::Drawing::Point(684, 224);
             this->label30->Name = L"label30";
             this->label30->Size = System::Drawing::Size(23, 13);
@@ -489,7 +491,7 @@ namespace Emulator {
             // 
             // lbl_pc
             // 
-            this->lbl_pc->Anchor = System::Windows::Forms::AnchorStyles::Top;
+            this->lbl_pc->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
             this->lbl_pc->AutoSize = true;
             this->lbl_pc->Font = (gcnew System::Drawing::Font(L"Courier New", 8, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
                 static_cast<System::Byte>(0)));

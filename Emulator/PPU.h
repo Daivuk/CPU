@@ -18,6 +18,7 @@ public:
     virtual void draw();
 
 private:
+    HWND m_hWnd;
     RAM *m_pRAM;
     Processor *m_pProcessor;
     int m_screenWidth;

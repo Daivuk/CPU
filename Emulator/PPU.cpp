@@ -8,8 +8,8 @@
 #define VIDEO_ADDR 0x3FC0
 #define ATR_W 16
 #define ATR_H 16
-#define NAM_W (ATR_W * 2)
-#define NAM_H (ATR_H * 2)
+#define NAM_W 32
+#define NAM_H 30
 
 #define TILE_W 8
 #define TILE_H 8
@@ -85,9 +85,10 @@ uint32_t NESpalette[256];
 
 PPU::PPU(Processor *pProcessor, HWND hWnd)
     : m_pProcessor(pProcessor)
+    , m_hWnd(hWnd)
 {
     m_pRAM = m_pProcessor->getRAM();
-    m_pScreenData = new uint32_t[SCREEN_W * SCREEN_H];
+    m_pScreenData = new uint32_t[256 * 256];// SCREEN_W * SCREEN_H];
     
     // Build palette
     for (int i = 0; i < 64; ++i)
@@ -165,7 +166,17 @@ void PPU::draw()
 {
     bool bPPUEnabled = m_pRAM->read32(VIDEO_ADDR + 0) ? true : false;
 
+    RECT rect;
+    GetClientRect(m_hWnd, &rect);
+    m_screenWidth = rect.right - rect.left;
+    m_screenHeight = rect.bottom - rect.top;
+
     glViewport(0, 0, m_screenWidth, m_screenHeight);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, m_screenWidth, m_screenHeight, 0, -999, 999);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     glClearColor(1, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -184,6 +195,12 @@ void PPU::draw()
         auto pVIDEO_SP_PATTERN = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 16));
         auto pVIDEO_BG_NAM = (uint8_t *)m_pRAM->getPointer(m_pRAM->read32(VIDEO_ADDR + 20));
         auto pVIDEO_BG_ATR = pVIDEO_BG_NAM + 960;
+        uint8_t* pVIDEO_BG_NAMS[4] = {
+            pVIDEO_BG_NAM,
+            pVIDEO_BG_NAM + 1024,
+            pVIDEO_BG_NAM + 2048,
+            pVIDEO_BG_NAM + 3072
+        };
         auto VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 24);
         auto VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 28);
         auto pVIDEO_BG_PAL = (uint8_t *)m_pRAM->getPointer(VIDEO_ADDR + 32);
@@ -198,7 +215,7 @@ void PPU::draw()
         // Do scan lines!
         uint32_t *ptr = m_pScreenData;
         uint32_t tileId;
-        for (uint32_t y = VIDEO_BG_OFFSET_Y; y < SCREEN_H + VIDEO_BG_OFFSET_Y; ++y)
+        for (uint32_t yCpt = 0; yCpt < SCREEN_H; ++yCpt)
         {
             // Trigger scan line IRQ
             m_pProcessor->IRQ(VIDEO_SCAN_LINE_IRQ);
@@ -208,13 +225,20 @@ void PPU::draw()
             }
             VIDEO_BG_OFFSET_X = m_pRAM->read32(VIDEO_ADDR + 24);
             VIDEO_BG_OFFSET_Y = m_pRAM->read32(VIDEO_ADDR + 28);
-
+            auto y = yCpt + VIDEO_BG_OFFSET_Y;
             auto tileY = y / TILE_H;
+            auto screenY = ((tileY / NAM_H) % 2) * 2;
+            y %= TILE_H * NAM_H;
+            tileY = y / TILE_H;
             auto inTileY = y - tileY * TILE_H;
             for (uint32_t x = VIDEO_BG_OFFSET_X; x < SCREEN_W + VIDEO_BG_OFFSET_X; ++x, ++ptr)
             {
                 auto tileX = x / TILE_W;
                 auto inTileX = x - tileX * TILE_W;
+
+                pVIDEO_BG_NAM = pVIDEO_BG_NAMS[screenY + (tileX / NAM_W) % 2];
+                pVIDEO_BG_ATR = pVIDEO_BG_NAM + 960;
+
                 tileId = pVIDEO_BG_NAM[(tileY % NAM_H) * NAM_W + tileX % NAM_W];
 
                 auto bits1 = pVIDEO_BG_PATTERN[tileId * 16 + inTileY];
@@ -239,7 +263,7 @@ void PPU::draw()
             }
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCREEN_W, SCREEN_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_pScreenData);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_pScreenData);
     }
     else
     {
@@ -253,9 +277,9 @@ void PPU::draw()
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0);
     glVertex2i(0, 0);
-    glTexCoord2f(0, 1);
+    glTexCoord2f(0, (float)SCREEN_H / 256.f);
     glVertex2i(0, m_screenHeight);
-    glTexCoord2f(1, 1);
+    glTexCoord2f(1, (float)SCREEN_H / 256.f);
     glVertex2i(m_screenWidth, m_screenHeight);
     glTexCoord2f(1, 0);
     glVertex2i(m_screenWidth, 0);

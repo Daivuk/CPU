@@ -786,6 +786,12 @@ int compileLine(vector<string> &tokens)
              inst == ".INT" ||
              inst == ".SPACE")
     {
+        if (!pCurrentSection)
+        {
+            return throwError(ERROR_NOT_IN_SECTION, string("Not in section ") + inst);
+        }
+
+        pCurrentSection->tokenz.push_back(tokens);
         return ERROR_NONE;
     }
 
